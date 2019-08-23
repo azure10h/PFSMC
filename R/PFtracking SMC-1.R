@@ -1,0 +1,257 @@
+#'Particel Filter for Adaptive Bayes Learning
+#'@description A SMC version: dealing with degenercy
+#'
+#'
+#'@param Y vector of sequential data sequence.
+#'@param eta learning parameter. A positive value.
+#'@param alpha mixing parameter.
+#'@param N number of particles.
+#'@param c effective sample size thershold.
+#'@param T number of data sequence.
+#'@return \code{PFSMC} returns a list of effective sample size, normalized constants, predicted parameters theta and resample flags at each time.
+#'@export
+#'
+#'@examples
+#'
+#'
+#'#Generate true parameters with 5 change points
+#'change_point=floor(201/(5+1))*c(1:5)
+#'change_point=c(1,change_point,201)
+#'a=-10;b=10
+#'theta_list=a+(b-a)*runif(6)
+#'theta_true=rep(0,201)
+#'for(j in 1:(6))
+#'{
+#'theta_true[change_point[j]:change_point[j+1]]=theta_list[j]
+#'}
+#'
+#'#Generate normal data sequence
+#'Y=rnorm(201,theta_true,rep(1,201))
+#'Simulation<-PFSMC(Y=Y,eta=0.1,alpha=0.025,N=1000,c=0.5,T=201,theta_true=theta_true)
+
+###############################################
+
+
+PFSMC=function(Y,eta,alpha,N,c,T)
+{
+
+  mode=1
+  samples=matrix(0,T,N)
+  tha_sample=a+(b-a)*runif(N) #Initial particles theta_1^i for i=1:N
+  samples[1,]=tha_sample         #store particle samples
+  weight=matrix(0,T,N)               #Initial weights W_1^i=1/N
+  weight[1,]=rep(1,N)/N
+
+  Z=rep(0,T)                         #normalizing constants
+  Z[1]=1                             #the prior is exactly known as a uniform
+
+
+  ESS=rep(0,T)                       #Effctive sample size.
+  ESS[1]=N
+
+  resample=numeric(T)
+  theta_hat=numeric(T)
+
+#filteringdst_part1 function
+filteringdst_part1=function(t,alpha,Z)
+  {
+  Coef=matrix(0,t,1)
+  Coef[1]=(1-alpha)^(t-1)
+  if(t>=2)
+    {
+    for(k in 2:t)
+    {
+      Coef[k]=alpha*(1-alpha)^(t-k)*Z[k]
+    }
+  }
+return(Coef)
+  }
+
+# filteringdst_part2 function
+filteringdst_part2=function(theta,t,Y,mode=1,eta=1)
+{
+
+  if(is.null(nrow(theta))) {theta=t(t(theta))}
+
+  X=matrix(0,length(theta),t)
+
+  if(mode==0){
+    X[,t]=exploss(theta,Y[t],mode,eta)
+    k=t-1
+    while(k>=1){
+      X[,k]=X[,k+1]*exploss(theta,Y[k],mode,eta)
+      k=k-1
+    }
+  }
+  else
+    {
+      X[,t]=loss(theta,Y[t])
+      k=t-1
+      while(k>=1){
+        X[,k]=X[,k+1]+loss(theta,Y[k])
+        k=k-1
+      }
+      X=exp(-eta*X)
+    }
+  return(X)
+}
+
+
+#MH_move function
+MH_move=function(theta,targetdist,prop_mean,prop_sig)
+{
+  # MH step to increase sample diversity with a normal proposal distribution
+  # proposal_mean and proposal_sig are better estimated from current samples
+  siz=length(theta)
+  theta_new=rnorm(siz,prop_mean,prop_sig)
+  a1=targetdist(theta_new)/targetdist(theta)
+  a2=dnorm(theta,prop_mean,prop_sig)/dnorm(theta_new,prop_mean,prop_sig)
+  a=a2*a1
+  accept=rep(0,length(a))
+  for (i in 1:length(a))
+  {
+    accept[i]=min(1,a[i])
+  }
+  u=runif(siz)
+  u=as.numeric(u<accept)
+  theta_new=theta_new*u+theta*(1-u)
+  return(theta_new)
+}
+
+
+#transition function
+transition=function(theta,alpha,a,b)
+{
+  n=length(theta)
+  u=runif(n)
+
+    u=as.numeric(u<=(1-alpha))
+
+  theta_new=theta*u+(a+(b-a)*runif(n))*(1-u)
+  return(theta_new)
+}
+
+#loss function
+loss=function(theta,y)
+{
+  return((theta-y)^2)
+}
+
+
+#exploss function
+exploss = function(theta,y,mode=1,eta=1)
+{
+  #\exp(-\eta loss(theta,y))
+  #mode = 1: first specify loss function then exp it
+  #mode = 0: directly calculate the "likelihood"
+
+  if(mode==1) {
+    el=exp(-eta*loss(theta,y));
+  }
+  else {el=dnorm(y,theta,1);}
+  return(el)
+}
+
+resampleMultinomial=function(w){
+
+  M=length(w)
+  Q=cumsum(w)
+  Q[M]=1
+  indx=rep(0,M)
+
+  i=1
+  while (i<=M) { sampl=runif(1)
+  j=1;
+  while(Q[j]<sampl){j=j+1}
+  indx[i]=j
+  i=i+1
+  }
+  return(indx)
+}
+
+#########################################################
+
+
+
+isrejuvenate = 1
+ismixing = 1
+
+for (t in 1:(T-1))
+{
+  #update weight
+  weight[t+1,]=weight[t,]*(exploss(tha_sample,Y[t],mode,eta))
+  Z[t+1]=sum(weight[t+1,])
+  weight[t+1,]=weight[t+1,]/Z[t+1]
+  Z[t+1]=Z[t]*Z[t+1]
+
+
+
+  #calculate ESS
+  ESS[t+1]=1/sum(weight[t+1,]^2)
+  resample_flag=0
+
+  if(ESS[t+1]<c*N)
+    {
+    #resample
+    resample_flag=1
+    ind=resampleMultinomial(weight[t+1,])    #Using multinomial distribution to resample.
+    tha_sample=tha_sample[ind]    #Decide which samples need to be resampled.
+    weight[t+1,]=rep(1,N)/N       #Obtain equal weights.
+
+    #rejuvenate/Move using MH kernal
+    if(isrejuvenate)
+    {
+      prop_mean=mean(tha_sample)
+      prop_sig=sd(tha_sample)
+      Coef=filteringdst_part1(t,alpha,Z)
+      Xcal=function(theta) {filteringdst_part2(theta,t,Y,mode,eta)}
+
+      # if(is.null(nrow(tha_sample)))
+      # {
+      #   targetdist=function(theta) {
+      #     return(t(Xcal(theta)%*%Coef)) }
+      #   }
+      # else {
+        targetdist=function(theta) {
+          return(t(Xcal(theta)%*%Coef))
+          }
+      # }
+
+      tha_sample=MH_move(tha_sample,targetdist,prop_mean,prop_sig)
+    }
+  }
+
+  #move according to mixing transition kernel
+
+  if(ismixing)
+  {
+    tha_sample=transition(tha_sample,alpha,a,b)
+  }
+
+  #plot
+
+
+
+
+
+  if(resample_flag){
+  #  hist(tha_sample,breaks = 50,freq=F, main=c('Predictive Distribution for t = ',t))
+    theta_hat[t+1]=mean(tha_sample)
+    samples[t+1,]=tha_sample
+  }
+  else {
+   # hist(tha_sample[ind],breaks = 50,freq = F, main=c('Predictive Distribution for t = ',t))
+    theta_hat[t+1]=mean(tha_sample[ind])
+    samples[t+1,]=tha_sample[ind]
+    }
+    #abline(v=theta_true[t],col='red',lwd=3)
+
+  resample[t+1]=resample_flag
+
+}
+
+return(list(ESS=ESS,Z=Z,theta_hat=theta_hat,resample_flag=resample,samples=samples,weight=weight))
+}
+
+#
+
