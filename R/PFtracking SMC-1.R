@@ -241,8 +241,8 @@ for (t in 1:(T-1))
   }
   else {
    # hist(tha_sample[ind],breaks = 50,freq = F, main=c('Predictive Distribution for t = ',t))
-    theta_hat[t+1]=mean(tha_sample[ind])
-    samples[t+1,]=tha_sample[ind]
+    theta_hat[t+1]=mean(tha_sample[resampleMultinomial(weight[t+1,])])
+    samples[t+1,]=tha_sample[resampleMultinomial(weight[t+1,])]
     }
     #abline(v=theta_true[t],col='red',lwd=3)
 
