@@ -32,7 +32,7 @@
 ###############################################
 
 
-PFSMC=function(c)
+PFSMC=function(Y,eta,alpha,N,c,T)
 {
 
   mode=1

@@ -4,11 +4,9 @@
 \alias{PFSMC}
 \title{Particel Filter for Adaptive Bayes Learning}
 \usage{
-PFSMC(c)
+PFSMC(Y, eta, alpha, N, c, T)
 }
 \arguments{
-\item{c}{effective sample size thershold.}
-
 \item{Y}{vector of sequential data sequence.}
 
 \item{eta}{learning parameter. A positive value.}
@@ -16,6 +14,8 @@ PFSMC(c)
 \item{alpha}{mixing parameter.}
 
 \item{N}{number of particles.}
+
+\item{c}{effective sample size thershold.}
 
 \item{T}{number of data sequence.}
 }
