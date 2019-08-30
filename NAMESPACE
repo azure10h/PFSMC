@@ -3,4 +3,3 @@
 export(PFSMC)
 export(datagenNoml)
 export(loss)
-export(resampleMultinomial)

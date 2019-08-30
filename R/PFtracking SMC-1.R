@@ -32,7 +32,7 @@
 ###############################################
 
 
-PFSMC=function(Y,eta,alpha,N,c,T)
+PFSMC=function(c)
 {
 
   mode=1
@@ -51,6 +51,7 @@ PFSMC=function(Y,eta,alpha,N,c,T)
 
   resample=numeric(T)
   theta_hat=numeric(T)
+  theta_hat[1]=mean(tha_sample)
 
 #filteringdst_part1 function
 filteringdst_part1=function(t,alpha,Z)
