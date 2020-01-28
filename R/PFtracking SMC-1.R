@@ -170,6 +170,7 @@ resampleMultinomial=function(w){
   return(indx)
 }
 
+
 #########################################################
 
 
