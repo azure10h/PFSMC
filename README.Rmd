@@ -1,12 +1,6 @@
 ---
 output: github_document
-title: "Introduction to the PFSMC R Package"
-author: "Yilin Hou"
-vignette: >
-  %\VignetteIndexEntry{my-vignette}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
-bibliography: paperbib.bib  
+
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -15,7 +9,7 @@ bibliography: paperbib.bib
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "vignettes/my-vignette.rmd",
+  fig.path = "man/figures/README-",
   out.width = "100%"
 )
 ```
