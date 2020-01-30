@@ -3,3 +3,6 @@
 export(PFSMC)
 export(datagenNoml)
 export(loss)
+export(resampleResidual)
+export(resampleStratified)
+export(resampleSystematic)

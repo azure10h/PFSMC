@@ -1,10 +1,11 @@
 #'Loss Function
 #'
-#'@param theta Underlying parametes theta. 
+#'@param theta Underlying parametes theta.
 #'@param y Data sequence generated from underlying distributions.
 #'@description A loss function calculating the squared score of parameters and data sequence.
-#'@return Returns a squared loss. 
+#'@return Returns a squared loss.
 #'@export
+#'
 #'@examples
 #'
 #'#First generate data sequence with T=100, parameter space=[-10,10]
