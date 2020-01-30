@@ -9,6 +9,8 @@
 #'@param N number of particles to predict underlying densities.
 #'@param c effective sample size thershold.
 #'@param T number of data sequence. Time index.
+#'@param loss loss function for the underlying density. Used to update sample weights.
+#'@param resample resampling function. 
 #'
 #'@return \code{PFSMC} returns a list of effective sample size, normalized constants, predicted parameters theta and resample flags at each time.
 #'@export
@@ -49,16 +51,13 @@ PFSMC=function(Y,eta,alpha,N,c,T,loss,resample=resampleMultinomial)
   weight=matrix(0,T,N)           #Initial weights W_1^i=1/N
   weight[1,]=rep(1,N)/N
 
-  Z=rep(0,T)                         #normalizing constants
-  Z[1]=1                             #the prior is exactly known as a uniform
-
-
-  ESS=rep(0,T)                       #Effctive sample size.
-  ESS[1]=N
-
-  resample=numeric(T)
-  theta_hat=numeric(T)
-  theta_hat[1]=mean(tha_sample)
+  Z=rep(0,T) #Normalizing constants denoted in step 5
+  Z[1]=1 #Sum of weights is equal to 1 with equal weights
+  ESS=rep(0,T) #Store effctive sample sizes
+  ESS[1]=N #Initial effective sample size N
+  resample=numeric(T) #Store resample flags
+  theta_hat=numeric(T) #Store predicted parameters
+  theta_hat[1]=mean(tha_sample) #Initial predictive parameter
 
 
 #filteringdst_part1 function
@@ -82,7 +81,6 @@ filteringdst_part2=function(theta,t,Y,mode=1,eta=1)
 {
 
   if(is.null(nrow(theta))) {theta=t(t(theta))}
-
   X=matrix(0,length(theta),t)
 
   if(mode==0){
@@ -93,8 +91,7 @@ filteringdst_part2=function(theta,t,Y,mode=1,eta=1)
       k=k-1
     }
   }
-  else
-    {
+  else {
       X[,t]=loss(theta,Y[t])
       k=t-1
       while(k>=1){
@@ -139,15 +136,10 @@ transition=function(theta,alpha,a,b) {
   return(theta_new)
 }
 
-#loss function
-#Loss function
-# loss=function(theta,y)
-# {
-#   return((theta-y)^2)
-# }
 
 
 #exploss function
+#Based on the loss funciton we input, calculate the exponential loss of samples.
 exploss = function(theta,y,mode=1,eta=1)
 {
   #\exp(-\eta loss(theta,y))
@@ -161,107 +153,62 @@ exploss = function(theta,y,mode=1,eta=1)
   return(el)
 }
 
-resampleMultinomial=function(w){
-
-  M=length(w)
-  Q=cumsum(w)
-  Q[M]=1
-  indx=rep(0,M)
-
-  i=1
-  while (i<=M) { sampl=runif(1)
-  j=1;
-  while(Q[j]<sampl){j=j+1}
-  indx[i]=j
-  i=i+1
-  }
-  return(indx)
-}
-
-
-#########################################################
-
-
 
 isrejuvenate = 1
 ismixing = 1
 
-for (t in 1:(T-1))
-{
-  #update weight
+for (t in 1:(T-1)) {
+  
+  #update weight: particle with larger score gains larger weight
   weight[t+1,]=weight[t,]*(exploss(tha_sample,Y[t],mode,eta))
   Z[t+1]=sum(weight[t+1,])
-  weight[t+1,]=weight[t+1,]/Z[t+1]
-  Z[t+1]=Z[t]*Z[t+1]
-
-
+  weight[t+1,]=weight[t+1,]/Z[t+1] #normalize the weights
+  Z[t+1]=Z[t]*Z[t+1] #a useful constatnt, product sum of weights that will be used in calculating the integrals
 
   #calculate ESS
   ESS[t+1]=1/sum(weight[t+1,]^2)
   resample_flag=0
 
-  if(ESS[t+1]<c*N)
-    {
-    #resample
-    resample_flag=1
-    ind=resampling(weight[t+1,])    #Using multinomial distribution to resample.
-    tha_sample=tha_sample[ind]    #Decide which samples need to be resampled.
-    weight[t+1,]=rep(1,N)/N       #Obtain equal weights.
+  if(ESS[t+1]<c*N) { 
+    
+    #resample when ESS fall below a certain threshold
+    resample_flag=1  
+    ind=resampling(weight[t+1,]) #Using a chosen resampling method to resample particles.
+    tha_sample=tha_sample[ind]  #Decide which samples need to be resampled.
+    weight[t+1,]=rep(1,N)/N   #Obtain equal weights.
 
     #rejuvenate/Move using MH kernal
-    if(isrejuvenate)
-    {
-      prop_mean=mean(tha_sample)
+    if(isrejuvenate) {
+    
+      prop_mean=mean(tha_sample) 
       prop_sig=sd(tha_sample)
       Coef=filteringdst_part1(t,alpha,Z)
-      Xcal=function(theta) {filteringdst_part2(theta,t,Y,mode,eta)}
-
-      # if(is.null(nrow(tha_sample)))
-      # {
-      #   targetdist=function(theta) {
-      #     return(t(Xcal(theta)%*%Coef)) }
-      #   }
-      # else {
-        targetdist=function(theta) {
+      Xcal=function(theta) {
+        filteringdst_part2(theta,t,Y,mode,eta)
+        }
+      targetdist=function(theta) {
           return(t(Xcal(theta)%*%Coef))
           }
-      # }
-
       tha_sample=MH_move(tha_sample,targetdist,prop_mean,prop_sig)
     }
   }
 
-  #move according to mixing transition kernel
-
-  if(ismixing)
-  {
+  #mixing step: move samples according to a mixing transition kernel
+  if(ismixing) {
     tha_sample=transition(tha_sample,alpha,a,b)
   }
 
-  #plot
-
-
-
-
-
-  if(resample_flag){
-  #  hist(tha_sample,breaks = 50,freq=F, main=c('Predictive Distribution for t = ',t))
-    theta_hat[t+1]=mean(tha_sample)
-    samples[t+1,]=tha_sample
+  if(resample_flag) {
+    theta_hat[t+1]=mean(tha_sample) #we use the mean of samples as predictive value
+    samples[t+1,]=tha_sample 
   }
   else {
-   # hist(tha_sample[ind],breaks = 50,freq = F, main=c('Predictive Distribution for t = ',t))
     theta_hat[t+1]=mean(tha_sample[resampling(weight[t+1,])])
     samples[t+1,]=tha_sample[resampling(weight[t+1,])]
     }
-    #abline(v=theta_true[t],col='red',lwd=3)
-
-  resample[t+1]=resample_flag
-
+  
+  resample[t+1]=resample_flag #record resample flags
 }
-
 return(list(ESS=ESS,Z=Z,theta_hat=theta_hat,resample_flag=resample,samples=samples,weight=weight))
 }
-
-#
 

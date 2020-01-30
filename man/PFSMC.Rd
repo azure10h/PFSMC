@@ -18,6 +18,10 @@ PFSMC(Y, eta, alpha, N, c, T, loss, resample = resampleMultinomial)
 \item{c}{effective sample size thershold.}
 
 \item{T}{number of data sequence. Time index.}
+
+\item{loss}{loss function for the underlying density. Used to update sample weights.}
+
+\item{resample}{resampling function.}
 }
 \value{
 \code{PFSMC} returns a list of effective sample size, normalized constants, predicted parameters theta and resample flags at each time.
