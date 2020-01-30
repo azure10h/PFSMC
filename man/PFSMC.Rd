@@ -4,7 +4,7 @@
 \alias{PFSMC}
 \title{Sequential Monte Carlo Partical Filter}
 \usage{
-PFSMC(Y, eta, alpha, N, c, T, loss, resmapling)
+PFSMC(Y, eta, alpha, N, c, T, loss, resampling)
 }
 \arguments{
 \item{Y}{a 1*T vector of sequential data sequence.}
