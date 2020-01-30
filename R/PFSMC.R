@@ -35,7 +35,7 @@
 
 
 
-PFSMC=function(Y,eta,alpha,N,c,T,loss,resmapling)
+PFSMC=function(Y,eta,alpha,N,c,T,loss,resampling)
 {
 
   loss=match.fun(loss)
