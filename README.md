@@ -1,19 +1,19 @@
-My Title
+PFSMC - Package Documentation
 ================
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 This documentation gives an illustration of how to use the `PFSMC` R
 package to detect change points in data generating process based on an
-update rule and sequential Monte-Carlo algorithm \[see
-@ding2018asymptotically\]. Our goal is to achieve an asymptotic oracle
-score instead of false alarm or location accuracy. In this package, we
-focus on dealing with online data that comes sequentially with abrupt
-changes in their underlying distribution. We will first introduce the
-motivation of developing the underlying algorithms and illustrate how
-the prediction process works. Then we will show how to install the
-package from github and do related simulations. At last we will
-demonstrate several examples using the embeded functions.
+update rule and sequential Monte-Carlo algorithm (see Ding, Zhou, and
+Tarokh 2018). Our goal is to achieve an asymptotic oracle score instead
+of false alarm or location accuracy. In this package, we focus on
+dealing with online data that comes sequentially with abrupt changes in
+their underlying distribution. We will first introduce the motivation of
+developing the underlying algorithms and illustrate how the prediction
+process works. Then we will show how to install the package from github
+and do related simulations. At last we will demonstrate several examples
+using the embeded functions.
 
 # Introduction
 
@@ -71,8 +71,8 @@ density of parameter flow at time t based on the observations of
 ![Y\_t](https://latex.codecogs.com/png.latex?Y_t "Y_t"). A common
 practice is to use the logarithmic scoring rule ![s(g,y)=-\\log
 g(y)](https://latex.codecogs.com/png.latex?s%28g%2Cy%29%3D-%5Clog%20g%28y%29
-"s(g,y)=-\\log g(y)") which is a strictly proper scoring \[see
-@bickel2010scoring\]. That is, for any predicted density
+"s(g,y)=-\\log g(y)") which is a strictly proper scoring (see Bickel
+2010). That is, for any predicted density
 ![\\hat{g}\_t](https://latex.codecogs.com/png.latex?%5Chat%7Bg%7D_t
 "\\hat{g}_t"), ![\\int\_\\mathcal{Y} s(g,y)g^\*(y)\\geq
 s(g^\*,y)g^\*(y)](https://latex.codecogs.com/png.latex?%5Cint_%5Cmathcal%7BY%7D%20s%28g%2Cy%29g%5E%2A%28y%29%5Cgeq%20s%28g%5E%2A%2Cy%29g%5E%2A%28y%29
@@ -195,9 +195,9 @@ When calculating the predictive distribution, we use integral to
 estimate the predictive parameter instead of discretizing model space.
 That increases the computational cost and has some difficulty in
 parctical applicaiton. This brings us about using Monte Carlo methods to
-better sampling from the predicted distributions \[see
-@brooks2011handbook\]. We see the mixing process as a state space
-trasition and use an MCMC kernel to move the particles.
+better sampling from the predicted distributions (see Brooks et al.
+2011). We see the mixing process as a state space trasition and use an
+MCMC kernel to move the particles.
 
 The metric can be simplified as three steps:
 
@@ -400,8 +400,8 @@ resampleMultinomial=function(weight) {
 ## Sequential Monte Carlo Particle Filter
 
 Based on the four algorithms above, we come up with the sequential Monte
-Carlo sampler for kinetic prediction as data comes sequentially\[see
-@ding2018asymptotically\]. To initialize, we sample from a uniform
+Carlo sampler for kinetic prediction as data comes sequentially(see
+Ding, Zhou, and Tarokh 2018). To initialize, we sample from a uniform
 distribution with a compact parameter space
 ![\\Theta](https://latex.codecogs.com/png.latex?%5CTheta "\\Theta") and
 use equal weights as
@@ -718,3 +718,29 @@ of these two means are overlapped and there is no much difference
 between them.
 
 # Reference
+
+<div id="refs" class="references">
+
+<div id="ref-bickel2010scoring">
+
+Bickel, J Eric. 2010. “Scoring Rules and Decision Analysis Education.”
+*Decision Analysis* 7 (4). INFORMS: 346–57.
+
+</div>
+
+<div id="ref-brooks2011handbook">
+
+Brooks, Steve, Andrew Gelman, Galin Jones, and Xiao-Li Meng. 2011.
+*Handbook of Markov Chain Monte Carlo*. CRC press.
+
+</div>
+
+<div id="ref-ding2018asymptotically">
+
+Ding, Jie, Jiawei Zhou, and Vahid Tarokh. 2018. “Asymptotically Optimal
+Prediction for Time-Varying Data Generating Processes.” *IEEE
+Transactions on Information Theory* 65 (5). IEEE: 3034–67.
+
+</div>
+
+</div>

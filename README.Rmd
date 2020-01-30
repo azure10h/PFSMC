@@ -1,8 +1,9 @@
 ---
-title: "My Title"
+title: "PFSMC - Package Documentation"
 output: 
   github_document:
     pandoc_args: --webtex
+bibliography: paperbib.bib
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
