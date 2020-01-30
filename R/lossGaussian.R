@@ -19,7 +19,7 @@
 #'
 #'
 #'
-loss=function(theta,y)
+lossGaussian=function(theta,y)
 {
   return((theta-y)^2)
 }
