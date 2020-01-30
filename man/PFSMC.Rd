@@ -4,7 +4,7 @@
 \alias{PFSMC}
 \title{Sequential Monte Carlo Partical Filter}
 \usage{
-PFSMC(Y, eta, alpha, N, c, T, loss1, resample)
+PFSMC(Y, eta, alpha, N, c, T, loss, resample = resampleMultinomial)
 }
 \arguments{
 \item{Y}{a 1*T vector of sequential data sequence.}
@@ -33,12 +33,13 @@ with Sequential Monte Carlo algorithm
 k=5; T=200; a=-10; b=10
 library(PFSMC)
 Data=datagenNoml(200,5,-10,10)
-Y=Data[1]
-theta_true=Data[2]
+Y=Data[[1]]
+theta_true=Data[[2]]
 
 #Detecting changepoints using `PFSMC` funciton.
 
-Simulation<-PFSMC(Y=Y,eta=10*T^(-1/3),alpha=k/(T-1),N=1000,c=0.5,T=200)
+Simulation<-PFSMC(Y=Y,eta=10*T^(-1/3),alpha=k/(T-1),N=1000,
+c=0.5,T=200,loss=lossGaussian,resample=resampleMultinomial)
 ESS=Simulation[1]
 theta_hat=Simulation$theta_hat
 
