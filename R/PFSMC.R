@@ -35,11 +35,11 @@
 
 
 
-PFSMC=function(Y,eta,alpha,N,c,T,loss,resampling)
+PFSMC=function(Y,eta,alpha,N,c,T,loss1,resample)
 {
 
-  loss=match.fun(loss)
-  resampling=match.fun(resampling)
+  loss=match.fun(loss1)
+  resampling=match.fun(resample)
 
   mode=1
   samples=matrix(0,T,N)
