@@ -6,6 +6,16 @@
 \usage{
 resampleSystematic(w, N)
 }
+\arguments{
+\item{w}{Sample weights}
+
+\item{N}{Number of particles. Defalut is the length of w.}
+}
+\value{
+index Return the chosen index of samples.
+}
 \description{
-Systematic Resampling
+Similat to the stratified resampling. Difference is,
+through whole resampling steps, random number is drawed only once.
+Refer to \code{\link{resampleStratified}}
 }

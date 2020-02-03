@@ -7,7 +7,6 @@
 #'@return Function return an index called ancestry vector, which is
 #' drawn from a categorical distribution.
 #' Replace samples with the ancestor.
-#' @export
 
 
 

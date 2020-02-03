@@ -19,74 +19,77 @@
 #'
 #'
 #'#Generate true parameters and data sequence with 5 change points
-#'k=5; T=200; a=-10; b=10
+#'k=5; T=200
 #'library(PFSMC)
 #'Data=datagenNoml(200,5,-10,10)
 #'Y=Data[[1]]
 #'theta_true=Data[[2]]
 #'
 #'#Detecting changepoints using `PFSMC` funciton.
-#'
+#'#We choose a score function for Gaussian distribution and 
+#'a multinomial resampling method.
 #'Simulation<-PFSMC(Y=Y,eta=10*T^(-1/3),alpha=k/(T-1),N=1000,
-#'c=0.5,T=200,loss=lossGaussian,resample=resampleMultinomial)
-#'ESS=Simulation[1]
+#'c=0.5,T=200,loss= lossGaussian, resample=resampleMultinomial)
+#'ESS=Simulation[[1]]
 #'theta_hat=Simulation$theta_hat
 #'
 #'#Result visulization
-#'plot(theta_true,type="l",ylim=c(-12,12))
-#'lines(theta_hat,col="red")
+#'plot(theta_true, type="l", ylim=c(-12,12), xlab="Time", ylab="Predictive/True Parameters")
+#'lines(theta_hat, col="red")
 
 
 
 PFSMC=function(Y,eta,alpha,N,c,T,loss,resample=resampleMultinomial)
 {
 
+  #Evaluate the parameter space
+  a=floor(min(Y)) 
+  b=floor(max(Y))
+  
+  #Match the loss functiona and resampling scheme. That can be 
+  #customized to problems.
   loss=match.fun(loss)
   resampling=match.fun(resample)
 
   mode=1
   samples=matrix(0,T,N)
-  tha_sample=a+(b-a)*runif(N)    #Initial particles theta_1^i for i=1:N
-  samples[1,]=tha_sample         #store particle samples
-  weight=matrix(0,T,N)           #Initial weights W_1^i=1/N
+  tha_sample=a+(b-a)*runif(N)    #Initial particles theta_1^i for i=1:N.
+  samples[1,]=tha_sample         #Store particle samples.
+  weight=matrix(0,T,N)           #Initial weights W_1^i=1/N.
   weight[1,]=rep(1,N)/N
 
-  Z=rep(0,T) #Normalizing constants denoted in step 5
-  Z[1]=1 #Sum of weights is equal to 1 with equal weights
-  ESS=rep(0,T) #Store effctive sample sizes
-  ESS[1]=N #Initial effective sample size N
-  resample=numeric(T) #Store resample flags
-  theta_hat=numeric(T) #Store predicted parameters
-  theta_hat[1]=mean(tha_sample) #Initial predictive parameter
+  Z=rep(0,T) #Normalizing constants denoted in step 5.
+  Z[1]=1 #Sum of weights is equal to 1 with equal weights.
+  ESS=rep(0,T) #Store effctive sample sizes.
+  ESS[1]=N #Initial effective sample size N.
+  resample=numeric(T) #Store resample flags.
+  theta_hat=numeric(T) #Store predicted parameters.
+  theta_hat[1]=mean(tha_sample) #Initial predictive parameter.
 
 
 #filteringdst_part1 function
-#This function is important in MH calculating step
-filteringdst_part1=function(t,alpha,Z)
-  {
+#This function is important in MH calculating step.
+filteringdst_part1=function(t,alpha,Z) {
   Coef=matrix(0,t,1)
   Coef[1]=(1-alpha)^(t-1)
-  if(t>=2)
-    {
-    for(k in 2:t)
-    {
+  if(t>=2) {
+    for(k in 2:t) {
       Coef[k]=alpha*(1-alpha)^(t-k)*Z[k]
     }
   }
 return(Coef)
   }
 
-# filteringdst_part2 function
-filteringdst_part2=function(theta,t,Y,mode=1,eta=1)
-{
+#filteringdst_part2 function
+filteringdst_part2=function(theta,t,Y,mode=1,eta=1) {
 
   if(is.null(nrow(theta))) {theta=t(t(theta))}
   X=matrix(0,length(theta),t)
 
-  if(mode==0){
+  if(mode==0) {
     X[,t]=exploss(theta,Y[t],mode,eta)
     k=t-1
-    while(k>=1){
+    while(k>=1) {
       X[,k]=X[,k+1]*exploss(theta,Y[k],mode,eta)
       k=k-1
     }
@@ -94,7 +97,7 @@ filteringdst_part2=function(theta,t,Y,mode=1,eta=1)
   else {
       X[,t]=loss(theta,Y[t])
       k=t-1
-      while(k>=1){
+      while(k>=1) {
         X[,k]=X[,k+1]+loss(theta,Y[k])
         k=k-1
       }
@@ -145,7 +148,6 @@ exploss = function(theta,y,mode=1,eta=1)
   #\exp(-\eta loss(theta,y))
   #mode = 1: first specify loss function then exp it
   #mode = 0: directly calculate the "likelihood"
-
   if(mode==1) {
     el=exp(-eta*loss(theta,y));
   }
@@ -179,27 +181,30 @@ for (t in 1:(T-1)) {
 
     #rejuvenate/Move using MH kernal
     if(isrejuvenate) {
-    
+      #We calculate a proposal function: here we use the normal distribution
+      #with sample mean and sample varaince.
       prop_mean=mean(tha_sample) 
       prop_sig=sd(tha_sample)
       Coef=filteringdst_part1(t,alpha,Z)
       Xcal=function(theta) {
         filteringdst_part2(theta,t,Y,mode,eta)
-        }
+      }
+      #We write a target distribution to calculate the moving probability.
       targetdist=function(theta) {
           return(t(Xcal(theta)%*%Coef))
           }
-      tha_sample=MH_move(tha_sample,targetdist,prop_mean,prop_sig)
+      tha_sample=MH_move(tha_sample,targetdist,prop_mean,prop_sig) #We move the particles according to the generated MCMC kernel.
     }
   }
 
-  #mixing step: move samples according to a mixing transition kernel
+  #Mixing step: move samples according to a mixing transition kernel
   if(ismixing) {
     tha_sample=transition(tha_sample,alpha,a,b)
   }
-
+  
+  #Output: predictive densities.
   if(resample_flag) {
-    theta_hat[t+1]=mean(tha_sample) #we use the mean of samples as predictive value
+    theta_hat[t+1]=mean(tha_sample) #We use the mean of samples as predictive value
     samples[t+1,]=tha_sample 
   }
   else {

@@ -1,4 +1,14 @@
 #'Stratified Resampling
+#'@description A resampling function. Stratified resampling is used to
+#'reduce variance when Monte Carlo methods are implemented to estimate
+#'population statistics. We pre-partition the (0,1] into n disjoint sets,
+#'then draw independetly from each sub-intervals.
+#'
+#'@param w Sample weights.
+#'@param N Number of particles. Defalut is the length of w.
+#'@return Return the index that is chosen.
+#'
+#'
 #'@export
 
 resampleStratified=function(w,N){

@@ -3,7 +3,6 @@
 export(PFSMC)
 export(datagenNoml)
 export(lossGaussian)
-export(resampleMultinomial)
 export(resampleResidual)
 export(resampleStratified)
 export(resampleSystematic)

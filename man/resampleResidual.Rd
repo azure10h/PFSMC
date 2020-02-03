@@ -6,6 +6,18 @@
 \usage{
 resampleResidual(w, N)
 }
+\arguments{
+\item{w}{Sample weights}
+
+\item{N}{Number of particles. Defalut is the length of w.}
+}
+\value{
+indx Return the chosen index.
+}
 \description{
-Residual Resampling
+Also called remainder sampling, assuming that for particles with
+large weights new particle can be assighed without drawing. In the
+frist part of resampling step, samples with weights larger than 1/N
+will be kept and reduced by a multiple of 1/N. In the second part,
+we normalize the weights an do simple resampling.
 }

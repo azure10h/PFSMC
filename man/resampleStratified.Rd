@@ -6,6 +6,17 @@
 \usage{
 resampleStratified(w, N)
 }
+\arguments{
+\item{w}{Sample weights.}
+
+\item{N}{Number of particles. Defalut is the length of w.}
+}
+\value{
+Return the index that is chosen.
+}
 \description{
-Stratified Resampling
+A resampling function. Stratified resampling is used to
+reduce variance when Monte Carlo methods are implemented to estimate
+population statistics. We pre-partition the (0,1] into n disjoint sets,
+then draw independetly from each sub-intervals.
 }

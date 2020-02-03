@@ -1,8 +1,16 @@
 #'Systematic Resampling
+#'
+#'@description Similat to the stratified resampling. Difference is,
+#'through whole resampling steps, random number is drawed only once.
+#'Refer to \code{\link{resampleStratified}}
+#'
+#'@param w Sample weights
+#'@param N Number of particles. Defalut is the length of w.
+#'
+#'@return index Return the chosen index of samples.
 #'@export
 
-resampleSystematic=function(w,N)
-{
+resampleSystematic=function(w,N) {
   N=length(w)
   M=length(w)
   w=w/sum(w)
