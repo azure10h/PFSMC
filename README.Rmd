@@ -18,10 +18,9 @@ knitr::opts_chunk$set(
 ```
 
 
-This documentation gives an illustration of how to use the `PFSMC` R package to detect change points in data generating process based on an update rule and sequential Monte-Carlo algorithm [see @ding2018asymptotically]. Our goal is to achieve an asymptotic oracle score instead of false alarm or location accuracy. In this package, we focus on dealing with online data that comes sequentially with abrupt changes in their underlying distribution. We will first introduce the motivation of developing the underlying algorithms and illustrate how the prediction process works. Then we will show how to install the package from github and do related simulations. At last we will demonstrate several examples using the embeded functions.
+This documentation gives an illustration of how to use the `PFSMC` R package to detect change points in data generating process based on an update rule and sequential Monte-Carlo algorithm [see @ding2018asymptotically]. Our goal is to achieve an asymptotic oracle score instead of false alarm or location accuracy. In this package, we focus on dealing with online data that comes sequentially with abrupt or smooth changes in their underlying distribution. We will first introduce the motivation of developing the underlying algorithms and illustrate how the prediction process works. Then we will show how to install the package from github and do related simulations. At last we will demonstrate several examples using the embeded functions.
 
 # Introduction
-
 
 
 Large datasets may vary in their underlying data generating process, that is what we define as changepoints. Changepoint detection is the task of detecting those changes according to observed datasets. Roughly we can categorize detection method into two branches: online detection and offline detection. Difference comes from the way data are observed. Our package is basded on online method, where data comes sequentiall and we detect changepoints as soon as they occur in a real-time setting.
@@ -39,15 +38,14 @@ To solve this problem, we implement a concept of "$\epsilon$-net", which is appl
 That requires us to find an appropriate metric to evaluate the detection method's performance. Here, we utilize a score function which relates to the observations. We predict the density of parameter flow at time t based on the observations of $Y_1,...,Y_{t-1}$ and denote the predicted density at time t as $\hat{f}_t$. We then specify a scoring function $s:\mathcal{G}\times\mathcal{Y} \rightarrow \mathbb{R}$ where $\mathcal{G}$ is the model class of $g_t$ and $\mathcal{Y}$ is the range of $Y_t$. A common practice is to use the logarithmic scoring rule $s(g,y)=-\log g(y)$ which is a strictly proper scoring [see @bickel2010scoring]. That is, for any predicted density $\hat{g}_t$, $\int_\mathcal{Y} s(g,y)g^*(y)\geq s(g^*,y)g^*(y)$ and the equation is satisfied only when $g=g^*$.
 
 ## Scoring Rule
+
 For Gaussian data, the logarithm scoring function $s(\theta,y)$ is equal to $(\theta-y)^2/2$. We create `loss` function to realize the score function where `theta` denotes samples and `y` is the data point.
 
 ```{r}
-loss=function(theta,y) {
+lossGaussian=function(theta,y) {
   return((theta-y)^2/2)
 }
 ```
-
-
 
 
 ## Parametric Model Class
@@ -59,12 +57,11 @@ We first clarify some notations for parameter space. Denote $|\Theta|$ as the Le
 We add learning parameter $\eta$ and use the exponential loss $\exp\{-\eta s(\theta,y)\}$ to estimate the predictive distribution distribution $p_t(\theta)$. 
 
 
-
-
 Then we begin to set up the algorithm with continuous parameter space. We add the learning parameter $\eta$ to assign weights of next time step samples. After observing new data $y_t$ we obtain that $\tilde{f}_t(\theta)=f_{t-1}(\theta)\cdot \exp\{-\eta s(\theta,y_t)\}$. We dervive the `exploss` function, since now what we want to calculate is the exponential loss. Same as before, `theta` is the parameter flow and `y` is the corresponding data sequence.
 
 ```{r}
 exploss = function(theta,y,mode=1,eta=1) {
+  #\exp(-\eta loss(theta,y))
   #mode = 1: first specify loss function then exp it
   #mode = 0: directly calculate the "likelihood"
   if(mode==1) {
@@ -80,9 +77,11 @@ The weighted elements will better track abrupt changes since neighborhood elemen
 
 
 ```{r}
-transition=function(theta,alpha) {
-  n=length(theta) 
+transition=function(theta,alpha,a,b) {
+  n=length(theta)
   u=runif(n)
+  #With probability alpha, we keep the new particle; with probability alpha,
+  #replace it with a random draw from parameter space.
   u=as.numeric(u<=(1-alpha))
   theta_new=theta*u+(a+(b-a)*runif(n))*(1-u)
   return(theta_new)
@@ -91,7 +90,6 @@ transition=function(theta,alpha) {
  
 
 Learning parameter $\eta$ and mixing parameter $\alpha$ give a "tempering" effect on the weight updating, offering more tolerance/flexibility for potential underlying changes, while producing different rates of convergence. In the mixing step, we redistribute the belief for the values of parameters, which also make it more quickly to detect changes.
-
 
 
 
@@ -144,18 +142,18 @@ We use the `MH_move` function to generate the Markov Chain mentioned. We choose 
 ```{r}
 MH_move=function(theta,targetdist,prop_mean,prop_sig) {
   siz=length(theta)
-  theta_new=rnorm(siz,prop_mean,prop_sig) #Generate samples from proposal distribution
-  a1=targetdist(theta_new)/targetdist(theta) 
-  a2=dnorm(theta,prop_mean,prop_sig)/dnorm(theta_new,prop_mean,prop_sig)
-  a=a2*a1 
+  theta_new=rnorm(siz,prop_mean,prop_sig) #Generate samples from a proposal distribution
+  a1=targetdist(theta_new)/targetdist(theta) #a1 is the target distribution we want to sample from
+  a2=dnorm(theta,prop_mean,prop_sig)/dnorm(theta_new,prop_mean,prop_sig) #a2 is the values we sample from the proposal distribution
+  a=a2*a1
   #Accept the new candidate with probability min(1,a); otherwise just stay at the previous state.
-  accept=rep(0,length(a)) 
+  accept=rep(0,length(a))
   for (i in 1:length(a)) {
     accept[i]=min(1,a[i]) #alpha = min(1,a)
   }
   u=runif(siz) #The probability of accepting the new candidate
   u=as.numeric(u<accept)
-  theta_new=theta_new*u+theta*(1-u)
+  theta_new=theta_new*u+theta*(1-u) #Move the samples
   return(theta_new) #Return the Markov chain.
 }
 ```
@@ -352,7 +350,7 @@ samples=Simulation$samples #Predictive distributions
 ```
 
 
-```{r  echo=FALSE, fig.align='center', fig.cap="Different Change Points", fig.pos='!h', fig.show='hold', message=FALSE, warning=F,out.width='30%'}
+```{r  echo=FALSE, fig.align='center', fig.cap="Different Change Points", fig.pos='!h', fig.show='hold', message=FALSE, warning=F,out.width='35%'}
 knitr::include_graphics("002.png")
 knitr::include_graphics("003.png")
 knitr::include_graphics("004.png")
@@ -375,7 +373,7 @@ plot(ESS,type = 'l',main = 'ESS',xlab = 'Time Index t')
 abline(h=500,col='red',lwd=2)
 ```
 
-```{r echo=FALSE, fig.align='center', fig.cap="Different Change Points", fig.pos='!h', fig.show='hold', message=FALSE, warning=F,out.width='55%'}
+```{r echo=FALSE, fig.align='center', fig.cap="Different Change Points", fig.pos='!h', fig.show='hold', message=FALSE, warning=F,out.width='50%'}
 knitr::include_graphics("006.png")
 ```
 
@@ -406,9 +404,9 @@ knitr::include_graphics("007.png")
 knitr::include_graphics("wm.png")
 
 ```
+
+
 Here we use the mean of the samples as predictive mean. It is shown that the model is good fitted and sensitive to changes. We also compute the weighted mean as an alternative. The second plot displays that most part of these two means are overlapped and there is no much difference between them. 
-
-
 
 
 

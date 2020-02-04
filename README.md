@@ -8,12 +8,12 @@ package to detect change points in data generating process based on an
 update rule and sequential Monte-Carlo algorithm (see Ding, Zhou, and
 Tarokh 2018). Our goal is to achieve an asymptotic oracle score instead
 of false alarm or location accuracy. In this package, we focus on
-dealing with online data that comes sequentially with abrupt changes in
-their underlying distribution. We will first introduce the motivation of
-developing the underlying algorithms and illustrate how the prediction
-process works. Then we will show how to install the package from github
-and do related simulations. At last we will demonstrate several examples
-using the embeded functions.
+dealing with online data that comes sequentially with abrupt or smooth
+changes in their underlying distribution. We will first introduce the
+motivation of developing the underlying algorithms and illustrate how
+the prediction process works. Then we will show how to install the
+package from github and do related simulations. At last we will
+demonstrate several examples using the embeded functions.
 
 # Introduction
 
@@ -90,7 +90,7 @@ For Gaussian data, the logarithm scoring function
 function where `theta` denotes samples and `y` is the data point.
 
 ``` r
-loss=function(theta,y) {
+lossGaussian=function(theta,y) {
   return((theta-y)^2/2)
 }
 ```
@@ -143,6 +143,7 @@ and `y` is the corresponding data sequence.
 
 ``` r
 exploss = function(theta,y,mode=1,eta=1) {
+  #\exp(-\eta loss(theta,y))
   #mode = 1: first specify loss function then exp it
   #mode = 0: directly calculate the "likelihood"
   if(mode==1) {
@@ -168,9 +169,11 @@ We integrate the form into the `transition` function, where `theta`
 denotes the samples and `alpha` is a given mixing rate.
 
 ``` r
-transition=function(theta,alpha) {
-  n=length(theta) 
+transition=function(theta,alpha,a,b) {
+  n=length(theta)
   u=runif(n)
+  #With probability alpha, we keep the new particle; with probability alpha,
+  #replace it with a random draw from parameter space.
   u=as.numeric(u<=(1-alpha))
   theta_new=theta*u+(a+(b-a)*runif(n))*(1-u)
   return(theta_new)
@@ -302,18 +305,18 @@ get the required Markov Chain `theta_new` from `MH_move`.
 ``` r
 MH_move=function(theta,targetdist,prop_mean,prop_sig) {
   siz=length(theta)
-  theta_new=rnorm(siz,prop_mean,prop_sig) #Generate samples from proposal distribution
-  a1=targetdist(theta_new)/targetdist(theta) 
-  a2=dnorm(theta,prop_mean,prop_sig)/dnorm(theta_new,prop_mean,prop_sig)
-  a=a2*a1 
+  theta_new=rnorm(siz,prop_mean,prop_sig) #Generate samples from a proposal distribution
+  a1=targetdist(theta_new)/targetdist(theta) #a1 is the target distribution we want to sample from
+  a2=dnorm(theta,prop_mean,prop_sig)/dnorm(theta_new,prop_mean,prop_sig) #a2 is the values we sample from the proposal distribution
+  a=a2*a1
   #Accept the new candidate with probability min(1,a); otherwise just stay at the previous state.
-  accept=rep(0,length(a)) 
+  accept=rep(0,length(a))
   for (i in 1:length(a)) {
     accept[i]=min(1,a[i]) #alpha = min(1,a)
   }
   u=runif(siz) #The probability of accepting the new candidate
   u=as.numeric(u<accept)
-  theta_new=theta_new*u+theta*(1-u)
+  theta_new=theta_new*u+theta*(1-u) #Move the samples
   return(theta_new) #Return the Markov chain.
 }
 ```
@@ -666,7 +669,7 @@ Simulation<-PFSMC(Y=Y,eta=0.1,alpha=0.025,N=1000,c=0.5,T)
 samples=Simulation$samples #Predictive distributions
 ```
 
-<img src="002.png" title="Different Change Points" alt="Different Change Points" width="30%" style="display: block; margin: auto;" /><img src="003.png" title="Different Change Points" alt="Different Change Points" width="30%" style="display: block; margin: auto;" /><img src="004.png" title="Different Change Points" alt="Different Change Points" width="30%" style="display: block; margin: auto;" /><img src="005.png" title="Different Change Points" alt="Different Change Points" width="30%" style="display: block; margin: auto;" />
+<img src="002.png" title="Different Change Points" alt="Different Change Points" width="35%" style="display: block; margin: auto;" /><img src="003.png" title="Different Change Points" alt="Different Change Points" width="35%" style="display: block; margin: auto;" /><img src="004.png" title="Different Change Points" alt="Different Change Points" width="35%" style="display: block; margin: auto;" /><img src="005.png" title="Different Change Points" alt="Different Change Points" width="35%" style="display: block; margin: auto;" />
 
 We plot the predictive distribution around time `T=33` which is a change
 point. The model has an excellent ability to detect change and samples
@@ -683,7 +686,7 @@ plot(ESS,type = 'l',main = 'ESS',xlab = 'Time Index t')
 abline(h=500,col='red',lwd=2)
 ```
 
-<img src="006.png" title="Different Change Points" alt="Different Change Points" width="55%" style="display: block; margin: auto;" />
+<img src="006.png" title="Different Change Points" alt="Different Change Points" width="50%" style="display: block; margin: auto;" />
 
 From the ESS plot we can see that once the effective sample size falls
 below the threshold ![c\*N](https://latex.codecogs.com/png.latex?c%2AN
@@ -711,6 +714,7 @@ legend("bottomright",legend = c("Data","True mean","Predictive mean","Weighted m
 ```
 
 <img src="007.png" title="Different Change Points" alt="Different Change Points" width="40%" style="display: block; margin: auto;" /><img src="wm.png" title="Different Change Points" alt="Different Change Points" width="40%" style="display: block; margin: auto;" />
+
 Here we use the mean of the samples as predictive mean. It is shown that
 the model is good fitted and sensitive to changes. We also compute the
 weighted mean as an alternative. The second plot displays that most part

@@ -27,7 +27,7 @@
 #'
 #'#Detecting changepoints using `PFSMC` funciton.
 #'#We choose a score function for Gaussian distribution and 
-#'a multinomial resampling method.
+#'#a multinomial resampling method.
 #'Simulation<-PFSMC(Y=Y,eta=10*T^(-1/3),alpha=k/(T-1),N=1000,
 #'c=0.5,T=200,loss= lossGaussian, resample=resampleMultinomial)
 #'ESS=Simulation[[1]]
@@ -39,8 +39,7 @@
 
 
 
-PFSMC=function(Y,eta,alpha,N,c,T,loss,resample=resampleMultinomial)
-{
+PFSMC=function(Y,eta,alpha,N,c,T,loss,resample=resampleMultinomial) {
 
   #Evaluate the parameter space
   a=floor(min(Y)) 
